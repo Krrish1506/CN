@@ -1,0 +1,11 @@
+{
+  "name": "lan-analyzer",
+  "version": "1.0.0",
+  "description": "LAN Security Breach Analyzer backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "ISC"
+}
