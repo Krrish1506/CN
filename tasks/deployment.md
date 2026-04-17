@@ -1,4 +1,10 @@
-# 🚀 Render Deployment Guide — CN Project (Single Link)
+# ✅ Render Deployment — COMPLETE
+
+## 🌐 Live URL: [https://lan-breach-detection-system.onrender.com](https://lan-breach-detection-system.onrender.com)
+
+> **Deployed & Verified:** 18 April 2026 — UI loads, `/scan` API works, port results confirmed.
+
+---
 
 ## Pre-Requisites Checklist
 
@@ -65,43 +71,41 @@ All fields confirmed from screenshots:
 
 ---
 
-## ➡️ Step 5 — DEPLOY NOW (NEXT ACTION)
+## ~~Step 5 — Deploy~~ ✅ DONE
 
-> **You are here. This is the only remaining step.**
+~~Clicked "Create Web Service" → build completed in ~60–90 seconds~~
 
-1. Scroll all the way to the **bottom** of the Render page
-2. Click the **"Create Web Service"** button (purple button at the bottom)
-3. You will be taken to the build logs screen
-4. Wait for the logs to show:
-
+Build log confirmed:
 ```
 ==> Build successful
 ==> Starting service with 'node server.js'
 [+] LAN Security Breach Analyzer — ready on port 10000
 ```
 
-Build takes approximately **60–90 seconds**.
+---
+
+## ~~Step 6 — Get Your Public URL~~ ✅ DONE
+
+**Live URL:** `https://lan-breach-detection-system.onrender.com`
 
 ---
 
-## Step 6 — Get Your Public URL
+## ~~Step 7 — Test Everything~~ ✅ VERIFIED
 
-After the build succeeds:
+Tested with IP `45.33.32.156` — results confirmed:
 
-- Your live URL appears at the **top-left** of the Render service dashboard
-- Format: `https://lan-breach-detection-system-xxxx.onrender.com`
-- **Open that URL in your browser** — the full UI should load instantly
-
----
-
-## Step 7 — Test Everything
-
-| Test | Expected Result |
-|------|----------------|
-| Open `https://lan-breach-detection-system-xxxx.onrender.com/` | LAN Security Breach Analyzer UI loads ✅ |
-| Enter `192.168.1.1` → click "Execute Scan" | Spinner → results table appears ✅ |
-| Open `/style.css` in browser | CSS file loads (200 OK) ✅ |
-| Open `/app.js` in browser | JS file loads (200 OK) ✅ |
+| Port | Service | Status | Risk |
+|------|---------|--------|------|
+| 21 | FTP | CLOSED | NONE |
+| 22 | SSH | **OPEN** | **MEDIUM** |
+| 23 | Telnet | CLOSED | NONE |
+| 25 | SMTP | CLOSED | NONE |
+| 80 | HTTP | **OPEN** | **LOW** |
+| 443 | HTTPS | CLOSED | NONE |
+| 445 | SMB | CLOSED | NONE |
+| 3306 | MySQL | CLOSED | NONE |
+| 3389 | RDP | CLOSED | NONE |
+| 8080 | HTTP-Alt | CLOSED | NONE |
 
 ---
 
