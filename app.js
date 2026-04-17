@@ -1,79 +1,81 @@
-const scanBtn = document.getElementById('scanBtn');
-const ipAddressInput = document.getElementById('ipAddress');
-const loader = document.getElementById('loader');
-const resultsSection = document.getElementById('resultsSection');
-const resultsTableBody = document.querySelector('#resultsTable tbody');
+// ─── DOM references ───────────────────────────────────────────────────────────
+
+const scanBtn               = document.getElementById('scanBtn');
+const ipAddressInput        = document.getElementById('ipAddress');
+const loader                = document.getElementById('loader');
+const resultsSection        = document.getElementById('resultsSection');
+const resultsTableBody      = document.querySelector('#resultsTable tbody');
 const recommendationsSection = document.getElementById('recommendationsSection');
-const recommendationsList = document.getElementById('recommendationsList');
+const recommendationsList   = document.getElementById('recommendationsList');
+
+// ─── Scan trigger ─────────────────────────────────────────────────────────────
 
 scanBtn.addEventListener('click', async () => {
     let ip = ipAddressInput.value.trim();
+
     if (!ip) {
-        alert("Please enter a target IP address.");
+        alert('Please enter a target IP address.');
         return;
     }
 
-    // Basic IPv4 validation regex (also allowing localhost)
-    const ipRegex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    // Basic IPv4 validation (localhost is also accepted)
+    const ipRegex = /^(25[0-5]|2[0-4]\d|[01]?\d\d?)(\.(25[0-5]|2[0-4]\d|[01]?\d\d?)){3}$/;
     if (!ipRegex.test(ip) && ip !== 'localhost' && ip !== '127.0.0.1') {
-        alert("Invalid IPv4 address format.");
+        alert('Invalid IPv4 address format.');
         return;
     }
-    
-    // Resolve localhost to IP for net native module
-    if (ip === 'localhost') {
-        ip = '127.0.0.1';
-    }
 
-    // Reset UI before processing
+    // Normalise localhost for net module on the backend
+    if (ip === 'localhost') ip = '127.0.0.1';
+
+    // Reset UI state
     resultsSection.classList.add('hidden');
     recommendationsSection.classList.add('hidden');
     resultsTableBody.innerHTML = '';
     recommendationsList.innerHTML = '';
-    
     scanBtn.disabled = true;
     loader.classList.remove('hidden');
 
     try {
-        const response = await fetch('https://cn-yu1y.onrender.com/scan', {
+        // Relative URL — works on any domain (local dev or Render production)
+        const response = await fetch('/scan', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ ip })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ip }),
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.error || 'Failed to receive a valid response from backend.');
+            throw new Error(data.error || 'Server returned an error response.');
         }
 
         renderResults(data.results);
         renderRecommendations(data.results);
-
         resultsSection.classList.remove('hidden');
 
-    } catch (error) {
-        alert("Error: " + error.message + "\nEnsure the backend server is running on port 3000 (execute `node server.js` in terminal).");
+    } catch (err) {
+        alert('Scan failed: ' + err.message);
     } finally {
         scanBtn.disabled = false;
         loader.classList.add('hidden');
     }
 });
 
+// ─── Render helpers ───────────────────────────────────────────────────────────
+
 function renderResults(results) {
-    // Sort results chronologically by port number for display purposes
-    const sortedResults = [...results].sort((a,b) => a.port - b.port);
-    
-    sortedResults.forEach(result => {
+    // Display ports sorted numerically
+    const sorted = [...results].sort((a, b) => a.port - b.port);
+
+    sorted.forEach((result) => {
         const row = document.createElement('tr');
-        
-        let riskClass = '';
+
+        let riskClass;
         if (result.status === 'open') {
-            if (result.risk === 'High') riskClass = 'risk-high';
+            if (result.risk === 'High')   riskClass = 'risk-high';
             else if (result.risk === 'Medium') riskClass = 'risk-medium';
-            else riskClass = 'risk-low';
+            else                          riskClass = 'risk-low';
         } else {
             riskClass = 'risk-low';
             result.risk = 'None';
@@ -90,24 +92,20 @@ function renderResults(results) {
 }
 
 function renderRecommendations(results) {
-    // Only fetch recommendations for High-risk ports that are exposed
-    const openHighRisk = results.filter(r => r.status === 'open' && r.risk === 'High');
-    
-    if (openHighRisk.length === 0) {
-        return; 
-    }
+    const openHighRisk = results.filter((r) => r.status === 'open' && r.risk === 'High');
+    if (openHighRisk.length === 0) return;
 
-    const recommendationsConfig = {
-        21: "Port 21 (FTP) is exposed. FTP transmits data and credentials in plain text. Consider using SFTP (Port 22) or FTPS to encrypt data.",
-        23: "Port 23 (Telnet) is exposed. Telnet passes traffic in plain text. Replace it immediately with SSH (Port 22) for strongly encrypted remote access.",
-        445: "Port 445 (SMB) is exposed. This is a critical risk vector (WannaCry payload). Ensure MS17-010 patch is applied, disable SMBv1, and strict firewall configurations block internet access.",
-        3389: "Port 3389 (RDP) is exposed. Do not expose RDP directly. Protect it via VPN or strictly limit IP access, and enforce Network Level Authentication (NLA)."
+    const advisories = {
+        21:   'Port 21 (FTP) is exposed. FTP transmits data and credentials in plain text. Migrate to SFTP (port 22) or FTPS immediately.',
+        23:   'Port 23 (Telnet) is exposed. Telnet passes all traffic in plain text. Replace it with SSH (port 22) for encrypted remote access.',
+        445:  'Port 445 (SMB) is exposed — the WannaCry attack vector. Apply MS17-010 patch, disable SMBv1, and block this port at the firewall.',
+        3389: 'Port 3389 (RDP) is exposed. Never expose RDP directly to the internet. Gate it behind a VPN and enforce Network Level Authentication (NLA).',
     };
 
-    openHighRisk.forEach(result => {
-        if (recommendationsConfig[result.port]) {
+    openHighRisk.forEach((result) => {
+        if (advisories[result.port]) {
             const li = document.createElement('li');
-            li.textContent = recommendationsConfig[result.port];
+            li.textContent = advisories[result.port];
             recommendationsList.appendChild(li);
         }
     });
@@ -115,9 +113,8 @@ function renderRecommendations(results) {
     recommendationsSection.classList.remove('hidden');
 }
 
-// Allow "Enter" key trigger for usability
-ipAddressInput.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        scanBtn.click();
-    }
+// ─── Keyboard shortcut ────────────────────────────────────────────────────────
+
+ipAddressInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') scanBtn.click();
 });
